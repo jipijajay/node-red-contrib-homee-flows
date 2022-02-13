@@ -1,0 +1,205 @@
+[
+    {
+        "id": "8afa8b61.5b55c8",
+        "type": "ioBroker in",
+        "z": "d0b63417.225878",
+        "name": "100% close (SW1 true)",
+        "topic": "sonoff.0.Shelly2-5_F9780C.Switch1",
+        "payloadType": "value",
+        "onlyack": false,
+        "func": "all",
+        "gap": "",
+        "fireOnStart": "true",
+        "x": 160,
+        "y": 740,
+        "wires": [
+            [
+                "103ac15b.0ba3df"
+            ]
+        ]
+    },
+    {
+        "id": "1890ae19.18d002",
+        "type": "ioBroker in",
+        "z": "d0b63417.225878",
+        "name": "100% open (SW2 true)",
+        "topic": "sonoff.0.Shelly2-5_F9780C.Switch2",
+        "payloadType": "value",
+        "onlyack": false,
+        "func": "all",
+        "gap": "",
+        "fireOnStart": "true",
+        "x": 160,
+        "y": 800,
+        "wires": [
+            [
+                "103ac15b.0ba3df"
+            ]
+        ]
+    },
+    {
+        "id": "436d5a0f.4f5644",
+        "type": "ioBroker out",
+        "z": "d0b63417.225878",
+        "name": "opem/close",
+        "topic": "sonoff.0.Shelly2-5_F9780C.POWER1",
+        "ack": "false",
+        "autoCreate": "false",
+        "stateName": "",
+        "role": "",
+        "payloadType": "",
+        "readonly": "",
+        "stateUnit": "",
+        "stateMin": "",
+        "stateMax": "",
+        "x": 710,
+        "y": 840,
+        "wires": []
+    },
+    {
+        "id": "103ac15b.0ba3df",
+        "type": "function",
+        "z": "d0b63417.225878",
+        "name": "Status an Garagentor",
+        "func": "var node_id=9020;\n\n//var switch1=\"false\"; //Garage Kontakt oben\n//var switch2=\"true\"; // Garage Kontakt unten\nvar msg1,msg2,msgclose,msgopen;\nvar switch1 = context.get('Switch1') || \"empty\";\nvar switch2 = context.get('Switch2') || \"empty\";\nvar lastPos = context.get('lastPos') || \"empty\";\nvar CAction = \"empty\"\nvar TargetVal = 0;\n\nif ((msg.topic).match(/^.*POWER1/)){\n    switch (msg.payload) {\n                          case \"true\":\n                            TargetVal = 1;\n                            break;\n                          case \"false\":\n                            TargetVal = 0;\n                            break;\n                          }\n    node.send({payload:{\n                    \"attribute\":{\n                                \"id\":node_id,\n                                \"value\":TargetVal\n                                }\n                    },\n            topic:\"open/close\",\n            node_id:node_id\n            }); //Garage open/close\n\n}\n\nif (msg.payload.attributeId === 9020 ){\n    node.send({payload:{\n                    \"attribute\":{\n                                \"id\":node_id,\n                                \"value\":0\n                                }\n                    },\n            topic:\"bounce off\",\n            node_id:node_id\n            }); //reset to off\n\n}\n\nif ((msg.topic).match(/^.*Switch1/)){\n        context.set('Switch1',msg.payload);\n        switch1=context.get('Switch1');\n}\n\nif ((msg.topic).match(/^.*Switch2/)){\n        context.set('Switch2',msg.payload);\n        switch2=context.get('Switch2');\n        //return [{payload:{\"Switch2\":switch2}}];\n}\n\nif (switch1 === \"true\" && switch2 === \"false\") {\n                                                context.set('lastPos',\"closed\")\n                                                CAction = \"closed\";\n                                                node.send({payload:{\"attribute\":{\n                                                                                \"id\":node_id+1,\n                                                                                \"value\":1\n                                                                            },\n                                                                 },\n                                                            topic:\"SW1/closed\",\n                                                            node_id:node_id\n                                                        })\n\n} //Garage zu\n\nif (switch1 === \"false\" && switch2 === \"true\") {\n                                                context.set('lastPos',\"open\")\n                                                CAction = \"open\";\n                                                node.send({payload:{\"attribute\":{\n                                                                                \"id\":node_id+1,\n                                                                                \"value\":0},\n                                                                              },\n                                                                    topic:\"SW2/open\",\n                                                                    node_id:node_id\n                                                        })\n\n} //Garage auf\n\nif (switch1 === \"false\" && lastPos === \"closed\" ) {\n                                                    CAction = \"opening\";\n                                                    node.send({payload:{\"attribute\":{\n                                                                                \"id\":node_id+1,\n                                                                                \"value\":3}, // (opening)\n                                                                              },\n                                                                    topic:\"opening\",\n                                                                    node_id:node_id\n                                                            })\n\n} // Door moving (opening)\n\nif (switch2 === \"false\" && lastPos === \"open\" ) {\n                                                CAction = \"closing\";\n                                               node.send({payload:{\"attribute\":{\n                                                                                \"id\":node_id+1,\n                                                                                \"value\":4}, // (closing)\n                                                                              },\n                                                                    topic:\"closing\",\n                                                                    node_id:node_id\n                                                            })\n\n} // Door moving (opening)\n\nnode.status({fill:(switch1 != \"true\" ? \"red\" : \"green\"),shape:\"dot\",text:(\"SW1:\"+switch1+\" SW2:\"+switch2+\" Action: \"+CAction)});",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 760,
+        "wires": [
+            [
+                "f6445fe8.4331",
+                "3d4d4d0d.405802"
+            ]
+        ],
+        "outputLabels": [
+            "Taster 1 oben gedrückt"
+        ]
+    },
+    {
+        "id": "f6445fe8.4331",
+        "type": "homeeDevice",
+        "z": "d0b63417.225878",
+        "virtual-homee": "",
+        "name": "Garagentor",
+        "nodeId": "9020",
+        "showNodeId": true,
+        "profile": "16",
+        "icon": "nodeicon_garagedoor",
+        "attributes": [
+            {
+                "instance": 0,
+                "minimum": 0,
+                "maximum": 1,
+                "current_value": 0,
+                "target_value": 0,
+                "last_value": 0,
+                "unit": "",
+                "step_value": 1,
+                "editable": 1,
+                "type": 1,
+                "state": 1,
+                "last_changed": 12345555,
+                "changed_by": 1,
+                "changed_by_id": 0,
+                "based_on": 1,
+                "data": "",
+                "id": "9020",
+                "node_id": "9020"
+            },
+            {
+                "type": 135,
+                "state": 1,
+                "instance": 0,
+                "minimum": 0,
+                "maximum": 4,
+                "current_value": 0,
+                "target_value": 0,
+                "last_value": 0,
+                "data": "",
+                "name": "",
+                "unit": "n%2Fa",
+                "step_value": 1,
+                "editable": 0,
+                "last_changed": 1644180198,
+                "changed_by": 1,
+                "changed_by_id": 0,
+                "based_on": 1,
+                "options": [],
+                "id": "9021",
+                "node_id": "9020"
+            }
+        ],
+        "statusTemplate": "",
+        "x": 470,
+        "y": 840,
+        "wires": [
+            [
+                "3d4d4d0d.405802",
+                "103ac15b.0ba3df",
+                "436d5a0f.4f5644"
+            ]
+        ]
+    },
+    {
+        "id": "5052f445.606f2c",
+        "type": "inject",
+        "z": "d0b63417.225878",
+        "name": "trigger",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 510,
+        "y": 700,
+        "wires": [
+            [
+                "436d5a0f.4f5644"
+            ]
+        ]
+    },
+    {
+        "id": "eee842c6.9444d",
+        "type": "ioBroker in",
+        "z": "d0b63417.225878",
+        "name": "open/close",
+        "topic": "sonoff.0.Shelly2-5_F9780C.POWER1",
+        "payloadType": "value",
+        "onlyack": "",
+        "func": "all",
+        "gap": "",
+        "fireOnStart": "true",
+        "x": 120,
+        "y": 860,
+        "wires": [
+            [
+                "103ac15b.0ba3df"
+            ]
+        ]
+    },
+    {
+        "id": "a5b14324.c805e",
+        "type": "comment",
+        "z": "d0b63417.225878",
+        "name": "Garagentor mit shelly 2.5",
+        "info": "",
+        "x": 310,
+        "y": 680,
+        "wires": []
+    }
+]
